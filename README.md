@@ -17,7 +17,7 @@ I welcome all pull requests. Here are some basic rules of your request:
   of this license document, but changing it is not allowed.
   This version of the GNU Lesser General Public License incorporates
   the terms and conditions of version 3 of the GNU General Public
-  License, supplemented by the additional permissions listed [here](https://github.com/SignalGo/client-java/LICENSE).
+  License, supplemented by the additional permissions listed [here](https://github.com/SignalGo/client-java/blob/master/LICENSE).
 
 # Maintained By
 [mehdi akbarian](https://github.com/makbn) ([@makbn](https://www.twitter.com/makbn))
