@@ -9,7 +9,7 @@ I welcome all pull requests. Here are some basic rules of your request:
   3. Please keep PR titles easy to read and descriptive of changes, this will make them easier to merge :)
   
 # Special Thanks To:
-  1.  [Ali Yousefi](https://github.com/hamishebahar) for .Net version of SingalR
+  1.  [Ali Yousefi](https://github.com/hamishebahar) for .Net version of SingalGo
 
 # License
   Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
