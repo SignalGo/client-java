@@ -30,7 +30,7 @@ public class MethodCallbackInfo {
         this.data = data;
     }
 
-    public boolean getIsException() {
+    public boolean isIsException() {
         return isException;
     }
 

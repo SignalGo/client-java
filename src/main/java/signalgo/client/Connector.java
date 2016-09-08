@@ -11,7 +11,7 @@ import signalgo.client.models.GoCompressMode;
 import signalgo.client.util.GoConvertorHelper;
 import signalgo.client.models.GoDataType;
 import signalgo.client.util.GoBackStackHelper;
-
+import signalgo.client.GoSocketListener.SocketState;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -21,10 +21,9 @@ import java.net.Socket;
 import java.net.URI;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by Mehdi Akbarian on 2016-08-04.
@@ -38,7 +37,7 @@ public class Connector {
     private boolean onRecievedExeption = false, isAlive;
     private Selector selector;
     private int mPort, timeoutMills = 10000;
-    private LinkedHashMap<String, ClientDuplex> mPendingServices;
+    private ConcurrentHashMap<String, ClientDuplex> mPendingServices;
     private InputStream inputStream;
     private OutputStream outputStream;
     private GoCallbackHandler callbackHandler;
@@ -47,10 +46,11 @@ public class Connector {
     private GoClientHelper clientHelper;
     private GoConvertorHelper convertorHelper;
     private GoSocketListener socketListener;
-    private GoSocketListener.SocketState currentState = GoSocketListener.SocketState.Disconnected;
-    private GoSocketListener.SocketState lastState = GoSocketListener.SocketState.Disconnected;
-
+    private SocketState currentState;
+    private SocketState lastState;
     public Connector() {
+        this.currentState = SocketState.Disconnected;
+        this.lastState = SocketState.Disconnected;
         convertorHelper = new GoConvertorHelper();
         goStreamReader = new GoStreamReader();
         goStreamWriter = new GoStreamWriter();
@@ -67,7 +67,7 @@ public class Connector {
             public void run() {
                 try {
                     connect(url);
-                } catch (IOException ex) {
+                } catch (Exception ex) {
                     exceptionHandler(ex);
                 }
             }
@@ -75,33 +75,39 @@ public class Connector {
         return this;
     }
 
-    public Connector connect(String url) throws IOException {
+    public Connector connect(String url) throws Exception {
         URI uri = URI.create(url);
         Connector connector = connect(uri.getHost(), uri.getPort());
         firstInitial();
+        goStreamWriter.typeAuthentication(outputStream);
+        if(!goStreamReader.onTypeAuthenticationResponse(inputStream))
+            throw new Exception("server cant authenticat client type!");
         connectData(uri.getPath());
         listen();
         syncAllServices();
-        notifyListener(GoSocketListener.SocketState.Connected);
+        this.notifyListener(SocketState.Connected);
         return connector;
     }
 
-    private void notifyListener(GoSocketListener.SocketState currentState){
-        lastState=this.currentState;
-        this.currentState=currentState;
-        socketListener.onSocketChange(lastState,currentState);
+    private void notifyListener(SocketState currentState) {
+        this.lastState = this.currentState;
+        this.currentState = currentState;
+        if(socketListener!=null)
+            this.socketListener.onSocketChange(this.lastState, currentState);
     }
+
+
     private Connector connect(String hostName, int port) throws IOException {
         this.mHostName = hostName;
         this.mPort = port;
         socket = new Socket();
         socket.connect(new InetSocketAddress(mHostName, mPort), timeoutMills);
-        notifyListener(GoSocketListener.SocketState.connecting);
+        this.notifyListener(SocketState.connecting);
         return this;
     }
 
     private void connectData(String url) {
-        List<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<String>();
         list.add(url);
         try {
             byte[] b = convertorHelper.byteConvertor(list);
@@ -118,11 +124,7 @@ public class Connector {
             MethodCallInfo methodCallInfo = new MethodCallInfo();
             methodCallInfo.setGuid(UUID.randomUUID().toString());
             methodCallInfo.setServiceName("/CheckConnection");
-//            Object o = send(methodCallInfo, boolean.class);
-//            if (o == null || !((Boolean) o)) {
-//                exceptionHandler(new Exception("server is available but connection address is not true"));
-//                socket.close();
-//            }
+
         } catch (Exception ex) {
             exceptionHandler(ex);
         }
@@ -147,7 +149,7 @@ public class Connector {
                     } catch (Exception e) {
                         exceptionHandler(e);
                         clientHelper.dispose();
-                        notifyListener(GoSocketListener.SocketState.Disconnected);
+                        notifyListener(SocketState.Disconnected);
                     }
                 }
             }
@@ -182,14 +184,13 @@ public class Connector {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof GoServiceName) {
                     if (mPendingServices == null) {
-                        mPendingServices = new LinkedHashMap<String, ClientDuplex>();
+                        mPendingServices = new ConcurrentHashMap<String, ClientDuplex>();
                     }
                     if (socket != null && socket.isConnected()) {
                         syncService(((GoServiceName) annotation).name());
                     } else {
                         mPendingServices.put(((GoServiceName) annotation).name(), cd);
                     }
-                    cd.getConnector(this);
                     if (((GoServiceName) annotation).usage() != GoServiceName.GoUsageType.invoke) {
                         initForCallback(cd);
                     }
@@ -204,6 +205,7 @@ public class Connector {
         try {
             Object o = invoke("/RegisterService", name, Object.class);
             if (mPendingServices != null && mPendingServices.containsKey(name)) {
+                ((ClientDuplex)this.mPendingServices.get(name)).getConnector(this);
                 mPendingServices.remove(name);
             }
         } catch (Exception ex) {
@@ -212,8 +214,6 @@ public class Connector {
     }
 
     private void syncAllServices() {
-        if(mPendingServices==null)
-            return;
         for (Map.Entry<String, ClientDuplex> entry : mPendingServices.entrySet()) {
             syncService(entry.getKey());
         }

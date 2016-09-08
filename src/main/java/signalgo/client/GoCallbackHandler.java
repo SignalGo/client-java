@@ -71,7 +71,7 @@ public class GoCallbackHandler {
         else
             methods = o.getClass().getMethods();
         for (Method m : methods) {
-            if (m.getAnnotationsByType(GoMethodName.class) != null) {
+            if (m.getAnnotation(GoMethodName.class) != null) {
                 methodNames.add(m.getName());
             }
         }
@@ -93,7 +93,6 @@ public class GoCallbackHandler {
                             Object returnVal;
                             if (o instanceof Class) {
                                 Object c = ((Class) o).newInstance();
-                                ((ClientDuplex) c).getConnector(connector);
                                 returnVal = m.invoke(c, getParams(mci.getParameters(), m.getParameterTypes()));
                             } else {
                                 returnVal = m.invoke(o, getParams(mci.getParameters(), m.getParameterTypes()));
@@ -106,12 +105,14 @@ public class GoCallbackHandler {
         }
     }
 
-    private Object[] getParams(List<ParameterInfo> pis, Class<?>[] paramType) throws ClassNotFoundException, IOException {
+    private Object[] getParams(List<ParameterInfo> pis, Class<?>[] paramType) throws ClassNotFoundException {
         Object[] params = new Object[pis.size()];
         for (int i = 0; i < pis.size(); i++) {
-            //params[i] = (paramType[i].cast(pis.get(i).getValue()));
-            params[i] = convertorHelper.deserialize(pis.get(i).getValue(), paramType[i]);
-           
+            try {
+                params[i]=convertorHelper.deserialize(pis.get(i).getValue(),paramType[i]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return params;
     }

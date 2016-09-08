@@ -85,9 +85,9 @@ public class GoClientHelper {
     }
     
     public void dispose() {
-        isDisposed = true;
         if(waitedMethodsForResponse==null)
             return;
+        isDisposed = true;
         for (Map.Entry<String, GoKeyValue<GoAutoResetEvent, Object>> entry : waitedMethodsForResponse.entrySet()) {
             entry.getValue().getKey().notify();
         }

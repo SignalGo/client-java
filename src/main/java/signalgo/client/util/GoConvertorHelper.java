@@ -8,10 +8,13 @@ package signalgo.client.util;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
+import org.joda.time.DateTime;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
@@ -29,14 +32,17 @@ private static String CHARSET="UTF-8";
     private  ObjectMapper mapper ;
     public ObjectMapper getObjectMapper(){
         if(mapper==null){
-        mapper=new ObjectMapper();
-        mapper.registerModule(new JodaModule());
-        mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
-        mapper.configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true);
-        mapper.configure(JsonParser.Feature.IGNORE_UNDEFINED, true);
-        mapper.configure(JsonParser.Feature.ALLOW_MISSING_VALUES, true);
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
-        mapper.setTimeZone(TimeZone.getDefault());
+            mapper=new ObjectMapper();
+            mapper.configure(MapperFeature.USE_ANNOTATIONS, true);
+            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+            mapper.configure(JsonParser.Feature.IGNORE_UNDEFINED, true);
+            mapper.configure(JsonParser.Feature.ALLOW_MISSING_VALUES, true);
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            mapper.setTimeZone(TimeZone.getDefault());
+            SimpleModule module = new SimpleModule();
+            module.addSerializer(DateTime.class,new DateTimeSerializer());
+            module.addDeserializer(DateTime.class,new DateTimeDeserializer());
+            mapper.registerModule(module);
         }
         return mapper;
     }
@@ -64,5 +70,38 @@ private static String CHARSET="UTF-8";
             return true;
         }
         return false;
+    }
+
+    class DateTimeSerializer extends StdSerializer<DateTime>{
+        DateTimeSerializer(){
+            this(null);
+        }
+
+        protected DateTimeSerializer(Class<DateTime> t) {
+            super(t);
+        }
+
+        @Override
+        public void serialize(DateTime dateTime, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+            jsonGenerator.writeString(dateTime.toString());
+        }
+    }
+
+    class DateTimeDeserializer extends StdDeserializer<DateTime> {
+
+        protected DateTimeDeserializer(Class<?> vc) {
+            super(vc);
+        }
+
+        public DateTimeDeserializer() {
+            this(null);
+        }
+
+        @Override
+        public DateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+            String s=jsonParser.readValueAs(String.class);
+            DateTime dateTime=new DateTime(s);
+            return dateTime;
+        }
     }
 }

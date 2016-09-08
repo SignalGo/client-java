@@ -20,6 +20,11 @@ public class GoStreamReader {
 
     }
 
+    public boolean onTypeAuthenticationResponse(InputStream inputStream) throws IOException {
+        byte[] response=read(inputStream,2);
+        return true;
+    }
+
     private int readSize(InputStream inputStream)throws IOException{
         byte[] size=read(inputStream,4);
         return ByteBuffer.wrap(size).order(ByteOrder.nativeOrder()).getInt();

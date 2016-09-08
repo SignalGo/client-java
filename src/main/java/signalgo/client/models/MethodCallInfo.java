@@ -17,6 +17,7 @@ public class MethodCallInfo {
     private String serviceName;
     private String methodName;
     private Object data;
+    private int type;
     private List<ParameterInfo> parameters;
 
     public List<ParameterInfo> getParameters() {
@@ -58,8 +59,12 @@ public class MethodCallInfo {
     public void setData(Object data) {
         this.data = data;
     }
-    
-    
-    
-    
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
 }

@@ -24,15 +24,34 @@ public class TestService implements ClientDuplex{
 //        super(connector);
         
     }
-    @GoMethodName(name = "GetAllProjects2",type = GoMethodName.MethodType.invoke)
+    @GoMethodName(name = "hello",type = GoMethodName.MethodType.invoke)
     public void hello(){
-            connector.autoInvokeAsync(new GoResponseHandler<MessageContract<List<Project>>>() {
-                @Override
-                public void onResponse(MessageContract<List<Project>> contract) {
-                    MessageContract<List<Project>> o=contract;
-                    System.err.println("hiiiiiiiiiiiiiiiiiiiiiiiii  "+(++a));
+        connector.invokeAsync("hello","CPMService",new GoResponseHandler() {
+            public void onResponse(Object t) {
+                if(t!=null){
+                    System.out.print(t.toString());
+
                 }
-            },new DateTime(0));
+            }
+        },"mehdi");
+    }
+
+    @GoMethodName(name = "GetUserName",type = GoMethodName.MethodType.emit)
+    public String bye(){
+        System.err.println("hhhhhhh");
+        //hello();
+        return "bye "+"mehdi";
+    }
+
+    @GoMethodName(name = "GetData",type = GoMethodName.MethodType.invoke)
+    public void getData(DateTime dateTime){
+        System.err.println("time = "+dateTime);
+        connector.autoInvokeAsync(new GoResponseHandler<MyClass>() {
+            @Override
+            public void onResponse(MyClass t) {
+                System.out.println("myClass :  "+t.dateTime);
+            }
+        }, dateTime);
     }
     
     

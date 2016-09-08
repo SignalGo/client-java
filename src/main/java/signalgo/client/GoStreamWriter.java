@@ -10,13 +10,14 @@ import signalgo.client.models.MethodCallbackInfo;
 import signalgo.client.util.GoAsyncHelper;
 import signalgo.client.util.GoConvertorHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 /**
  *
@@ -50,6 +51,12 @@ public class GoStreamWriter {
             }
         });
         
+    }
+
+    public void typeAuthentication(OutputStream outputStream) throws IOException {
+        byte[] data=convertorHelper.byteConvertor("SignalGo/1.0");
+        byte[] d= Charset.forName("UTF-8").encode("SignalGo/1.0").array();
+        outputStream.write(data);
     }
     
     public void sendDeliveryNotify(final OutputStream outputStream, MethodCallbackInfo callInfo) throws JsonProcessingException, UnsupportedEncodingException, IOException {
