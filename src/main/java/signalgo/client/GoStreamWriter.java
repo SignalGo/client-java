@@ -10,6 +10,8 @@ import signalgo.client.models.MethodCallbackInfo;
 import signalgo.client.util.GoAsyncHelper;
 import signalgo.client.util.GoConvertorHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import sun.rmi.runtime.Log;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -41,9 +43,9 @@ public class GoStreamWriter {
         GoAsyncHelper.run(new Runnable() {
             public void run() {
                 try {
-                    
                     outputStream.write(result);
-                    
+                    System.out.print("stream write completed!");
+                    outputStream.flush();
                 } catch (IOException ex) {
                     Logger.getLogger(GoStreamWriter.class.getName()).log(Level.SEVERE, null, ex);
                 }

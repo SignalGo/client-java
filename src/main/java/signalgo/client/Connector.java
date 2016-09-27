@@ -31,9 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Connector {
 
     private static String CHARSET = "UTF-8";
-    private String mHostName, serviceName, methodName;
+    private String mHostName;
     private Socket socket;
-    private Thread listener;
     private boolean onRecievedExeption = false, isAlive;
     private Selector selector;
     private int mPort, timeoutMills = 10000;
@@ -48,6 +47,8 @@ public class Connector {
     private GoSocketListener socketListener;
     private SocketState currentState;
     private SocketState lastState;
+    private Thread t;
+    Runnable listener;
     public Connector() {
         this.currentState = SocketState.Disconnected;
         this.lastState = SocketState.Disconnected;
@@ -135,7 +136,7 @@ public class Connector {
      * listen to specified Socket until finish connection of got exception
      */
     private void listen() {
-        GoAsyncHelper.run(new Runnable() {
+        listener =new Runnable() {
             public void run() {
                 while (!onRecievedExeption && isAlive && socket.isConnected()) {
                     try {
@@ -153,7 +154,9 @@ public class Connector {
                     }
                 }
             }
-        }, false);
+        };
+        t=new Thread(listener);
+        t.start();
     }
 
     private void firstInitial() throws IOException {
@@ -228,6 +231,9 @@ public class Connector {
      * @param MethodName
      */
     public Object invoke(String MethodName, String ServiceName, Type responseType, Object... param) throws Exception {
+        if(socket==null || !socket.isConnected()){
+            return null;
+        }
         MethodCallInfo mci = new MethodCallInfo();
         mci.setGuid(UUID.randomUUID().toString());
         mci.setMethodName(MethodName);
@@ -247,13 +253,16 @@ public class Connector {
     }
 
     public Object autoInvoke(Type responseType, Object... param) throws Exception {
+        //String serviceName, methodName;
+        Object result=null;
         try {
-            serviceName = GoBackStackHelper.getServiceName();
-            methodName = GoBackStackHelper.getMethodName();
+            final String serviceName = GoBackStackHelper.getServiceName();
+            final String methodName = GoBackStackHelper.getMethodName();
+            result=invoke(methodName, serviceName, responseType, param);
         } catch (ClassNotFoundException ex) {
             exceptionHandler(ex);
         }
-        return invoke(methodName, serviceName, responseType, param);
+        return result;
     }
 
     public Object send(MethodCallInfo callInfo, Type responseType) throws Exception {
@@ -289,22 +298,22 @@ public class Connector {
 
     public void autoInvokeAsync(final GoResponseHandler goResponseHandler, final Object... param) {
         try {
-            serviceName = GoBackStackHelper.getServiceName();
-            methodName = GoBackStackHelper.getMethodName();
-        } catch (ClassNotFoundException ex) {
+            final String serviceName = GoBackStackHelper.getServiceName();
+            final String methodName = GoBackStackHelper.getMethodName();
+
+            GoAsyncHelper.run(new Runnable() {
+                public void run() {
+                    try {
+                        Object o = invoke(methodName, serviceName, goResponseHandler.getType(), param);
+                        goResponseHandler.onResponse(o);
+                    } catch (Exception ex) {
+                        exceptionHandler(ex);
+                    }
+                }
+            });
+        } catch (Exception ex) {
             exceptionHandler(ex);
         }
-        GoAsyncHelper.run(new Runnable() {
-            public void run() {
-                try {
-                    Type t=goResponseHandler.getType();
-                    Object o = invoke(methodName, serviceName, goResponseHandler.getType(), param);
-                    goResponseHandler.onResponse(o);
-                } catch (Exception ex) {
-                    exceptionHandler(ex);
-                }
-            }
-        });
     }
 
     private void exceptionHandler(Exception e) {
@@ -346,12 +355,16 @@ public class Connector {
     }
 
     public void close() throws IOException {
-        if (listener != null && listener.isAlive()) {
+        if (listener != null && t.isAlive()) {
             isAlive = false;
             socket.close();
             if (socketListener != null) {
                 socketListener.onSocketChange(GoSocketListener.SocketState.Connected, GoSocketListener.SocketState.Disconnected);
             }
         }
+    }
+
+    public boolean socketIsConnected(){
+        return socket.isConnected();
     }
 }

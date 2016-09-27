@@ -19,7 +19,7 @@ import org.joda.time.DateTime;
 @GoServiceName(name = "CPMService" , type = GoServiceName.GoClientType.Java ,usage = GoServiceName.GoUsageType.both)
 public class TestService implements ClientDuplex{
     static int a=0;
-    Connector connector;
+    Connector connector=new Connector();
     public TestService() {
 //        super(connector);
         
@@ -30,6 +30,10 @@ public class TestService implements ClientDuplex{
             public void onResponse(Object t) {
                 if(t!=null){
                     System.out.print(t.toString());
+
+                }
+                else {
+                    System.out.print("nullllllllllllllllllllllll");
 
                 }
             }
@@ -45,7 +49,7 @@ public class TestService implements ClientDuplex{
 
     @GoMethodName(name = "GetData",type = GoMethodName.MethodType.invoke)
     public void getData(DateTime dateTime){
-        System.err.println("time = "+dateTime);
+        System.err.println("time = " + dateTime);
         connector.autoInvokeAsync(new GoResponseHandler<MyClass>() {
             @Override
             public void onResponse(MyClass t) {

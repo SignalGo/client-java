@@ -14,7 +14,8 @@ public class main {
         connector=new Connector();
         connector.setTimeout(20000);
         connector.registerService(service);
-        connector.connectAsync("http://192.168.10.27:9981/CPMServices");
+        connector.connectAsync("http://taxi.atitec.ir:4694/TransportServices/SignalGo");
+        service.hello();
         connector.onSocketChangeListener(new GoSocketListener() {
             public void onSocketChange(GoSocketListener.SocketState lastState, GoSocketListener.SocketState currentState) {
                 if(lastState==SocketState.Disconnected && currentState==SocketState.Connected && a ){
